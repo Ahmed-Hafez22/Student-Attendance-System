@@ -12,22 +12,22 @@ database_cursor = database_connection.cursor()
 #                         """
 # )
 
-# g1_courses_dict = {
-#     "BS213": {
-#         "Course Name": "Project Management",
-#         "Day": "Saturday",
-#         "End Time": "13:30",
-#     },
-#     "CF225": {
-#         "Course Name": "Computer Architecture",
-#         "Day": "Tuesday",
-#         "End Time": "10:40"
-#     },
-# }
+g1_4_courses_dict = {
+    "BS213": {
+        "Course Name": "Project Management",
+        "Day": "Saturday",
+        "End Time": "13:30",
+    },
+    "CF225": {
+        "Course Name": "Computer Architecture",
+        "Day": "Tuesday",
+        "End Time": "10:40"
+    },
+}
 
 # database_cursor.execute(
 #     """
-#                         CREATE TABLE IF NOT EXISTS Group1Table(
+#                         CREATE TABLE IF NOT EXISTS Group2Table(
 #                         id INTEGER PRIMARY KEY,
 #                         courses TEXT
 #                         )
@@ -36,8 +36,8 @@ database_cursor = database_connection.cursor()
 
 
 # database_cursor.execute(
-#     "INSERT INTO Group1Table(courses) VALUES(?)",
-#     (json.dumps(g1_courses_dict),),
+#     "INSERT INTO Group2Table(courses) VALUES(?)",
+#     (json.dumps(g1_4_courses_dict),),
 # )
 
 # database_cursor.execute(

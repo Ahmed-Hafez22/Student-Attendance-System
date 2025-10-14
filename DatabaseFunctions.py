@@ -76,9 +76,55 @@ def take_attendance():
                 return time_obj
             else:
                 continue
+
+    today_info = database_cursor.execute(
+        """
+                                        SELECT Day, Date
+                                        FROM DateTable
+                                        WHERE id = (SELECT MAX(id) FROM DateTable)
+                                    """
+    ).fetchone()
+
+    date_obj = datetime.strptime(today_info[1], "%Y-%m-%d")
+    current_time = datetime.now().strftime("%H:%M")
+    current_time_obj = datetime.strptime(current_time, "%H:%M").replace(
+            year=date_obj.year, month=date_obj.month, day=date_obj.day
+        )
+    
+    
+    allStudents = database_cursor.execute("SELECT AcademicID, studentGroup FROM allStudents").fetchall()
+    for student in allStudents:
+        if student[1] == 1:
+            courses_JSON =database_cursor.execute("SELECT courses FROM Group1Table").fetchone()[0]
+            courses_dict = json.loads(courses_JSON)
+        elif student[1] == 2:
+            courses_JSON =database_cursor.execute("SELECT courses FROM Group2Table").fetchone()[0]
+            courses_dict = json.loads(courses_JSON)
+        
+        today_course = get_today_course(courses_dict)
+
+        studentCourses_JSON = database_cursor.execute("SELECT registeredCourses FROM allStudents WHERE AcademicID = ?", (student[0],)).fetchone()[0]
+        studentCourses_dict = json.loads(studentCourses_JSON)
+        greenlight = check_if_student_registered_course(studentCourses_dict.values())
+        attendance_JSON = database_cursor.execute("SELECT attendance FROM allStudents WHERE AcademicID = ?", (student[0],)).fetchone()[0]
+        attendance_dict = json.loads(attendance_JSON)
+        for course in studentCourses_dict.values():
+            if today_course == course and attendance_dict[course][today_info[1]] == False:
+                attendance_dict[course][today_info[1]] = False
+                database_cursor.execute(
+                "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
+                (json.dumps(attendance_dict), student[0]),
+            )
+            else:
+                continue
+    database_connection.commit()
+
+
+
     
     student_ID = input("Waiting for scan: ")
     if student_ID:
+
         student_group = database_cursor.execute(
             """
                                                 SELECT studentGroup
@@ -91,75 +137,44 @@ def take_attendance():
         if student_group == 1:
             courses_JSON =database_cursor.execute("SELECT courses FROM Group1Table").fetchone()[0]
             courses_dict = json.loads(courses_JSON)
+        elif student_group == 2:
+            courses_JSON =database_cursor.execute("SELECT courses FROM Group2Table").fetchone()[0]
+            courses_dict = json.loads(courses_JSON)
 
-        today_info = database_cursor.execute(
-            """
-                                            SELECT Day, Date
-                                            FROM DateTable
-                                            WHERE id = (SELECT MAX(id) FROM DateTable)
-                                        """
-        ).fetchone()
 
-        date_obj = datetime.strptime(today_info[1], "%Y-%m-%d")
-        current_time = datetime.now().strftime("%H:%M")
-        current_time_obj = datetime.strptime(current_time, "%H:%M").replace(
-                year=date_obj.year, month=date_obj.month, day=date_obj.day
-            )
-        
-        studentCourses_Json = database_cursor.execute(
-            """
-                                                SELECT registeredCourses
-                                                FROM allStudents
-                                                WHERE AcademicID = ?
-                                                """,
-            (student_ID,),
-        ).fetchone()[0]
-        studentCourses_dict = json.loads(studentCourses_Json)
 
-        greenLight = check_if_student_registered_course(
-            studentCourses_dict.values()
-        )
-
+        course_time_obj = get_course_time(courses_dict)
+        time_difference = course_time_obj - current_time_obj
+        MAX_GAP = timedelta(minutes=15)
+        MIN_GAP = timedelta(minutes=0)
         today_course = get_today_course(courses_dict)
 
-        if greenLight == True:
-            attendance_JSON_query = (
-                "SELECT attendance FROM allStudents WHERE AcademicID = ?"
-            )
-            attendance_JSON = database_cursor.execute(
-                attendance_JSON_query, (student_ID,)
+        if time_difference <= MAX_GAP and time_difference > MIN_GAP:
+            studentCourses_Json = database_cursor.execute(
+                """
+                                                    SELECT registeredCourses
+                                                    FROM allStudents
+                                                    WHERE AcademicID = ?
+                                                    """,
+                (student_ID,),
             ).fetchone()[0]
-            attendance_dict = json.loads(attendance_JSON)
-            course_time_obj = get_course_time(courses_dict)
-            print((type(course_time_obj)) , (type(current_time_obj)))
-            time_difference = course_time_obj - current_time_obj
-            MAX_GAP = timedelta(minutes=15)
-            MIN_GAP = timedelta(minutes=0)
-            registered_lst = []
-            if time_difference <= MAX_GAP and time_difference > MIN_GAP:
+            studentCourses_dict = json.loads(studentCourses_Json)
+
+            greenLight = check_if_student_registered_course(
+                studentCourses_dict.values()
+            )
+            if greenLight == True:
+                attendance_JSON_query = (
+                    "SELECT attendance FROM allStudents WHERE AcademicID = ?"
+                )
+                attendance_JSON = database_cursor.execute(
+                    attendance_JSON_query, (student_ID,)
+                ).fetchone()[0]
+                attendance_dict = json.loads(attendance_JSON)
                 for course in studentCourses_dict.values():
                     if today_course == course:
                         attendance_dict[today_course][today_info[1]] = True
-                        registered_lst.append(student_ID)
                         database_cursor.execute(
-                "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                (json.dumps(attendance_dict), student_ID),
-            )
-            else:
-                for course in studentCourses_dict.values():
-                    if today_course == course:
-                        attendance_dict[today_course][today_info[1]] = False
-                    database_cursor.execute(
-                "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                (json.dumps(attendance_dict), student_ID),
-            )
-
-                for studentAcademicID in registered_lst:
-                    left_out_students = database_cursor.execute("SELECT attendance FROM allStudents WHERE AcademicID != ?", (studentAcademicID,))
-                    for course in studentCourses_dict.values():
-                        if today_course == course:
-                            attendance_dict[today_course][today_info[1]] = False
-                    database_cursor.execute(
                 "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
                 (json.dumps(attendance_dict), student_ID),
             )
