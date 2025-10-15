@@ -2,7 +2,6 @@ from libs import *
 from DatabaseConstantData import *
 
 
-
 def insert_date():
     today_date = database_cursor.execute("SELECT date('now')").fetchone()[0]
     today_day = datetime.strptime(today_date, "%Y-%m-%d").strftime("%A")
@@ -43,7 +42,7 @@ def make_attendance_dict():
     database_connection.commit()
 
 
-def take_attendance():  
+def take_attendance():
     def get_today_course(courses):
         for course_code in courses:
             if today_info[0] == courses[course_code]["Day"]:
@@ -52,23 +51,27 @@ def take_attendance():
                 pass
 
     def check_if_student_registered_course(courses):
-            for course in courses:
-                for g1_course in courses_dict:
-                    if course == g1_course : 
-                        return True
-                    else:
-                        continue
-            return False
-    
+        for course in courses:
+            for g1_course in courses_dict:
+                if course == g1_course:
+                    return True
+                else:
+                    continue
+        return False
+
     def get_course_time(courses):
         course_time_str = []
         for course_code in courses:
             course_time_str.append(courses[course_code]["End Time"])
-        
+
         course_time_obj = []
         for time in course_time_str:
-            course_time_obj.append(datetime.strptime(time, "%H:%M").replace(year=date_obj.year, month=date_obj.month, day=date_obj.day))
-        
+            course_time_obj.append(
+                datetime.strptime(time, "%H:%M").replace(
+                    year=date_obj.year, month=date_obj.month, day=date_obj.day
+                )
+            )
+
         for time_obj in course_time_obj:
             gap = timedelta(minutes=15)
             time_difference = current_time_obj - time_obj
@@ -88,40 +91,50 @@ def take_attendance():
     date_obj = datetime.strptime(today_info[1], "%Y-%m-%d")
     current_time = datetime.now().strftime("%H:%M")
     current_time_obj = datetime.strptime(current_time, "%H:%M").replace(
-            year=date_obj.year, month=date_obj.month, day=date_obj.day
-        )
-    
-    
-    allStudents = database_cursor.execute("SELECT AcademicID, studentGroup FROM allStudents").fetchall()
+        year=date_obj.year, month=date_obj.month, day=date_obj.day
+    )
+
+    allStudents = database_cursor.execute(
+        "SELECT AcademicID, studentGroup FROM allStudents"
+    ).fetchall()
     for student in allStudents:
         if student[1] == 1:
-            courses_JSON =database_cursor.execute("SELECT courses FROM Group1Table").fetchone()[0]
+            courses_JSON = database_cursor.execute(
+                "SELECT courses FROM Group1Table"
+            ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
         elif student[1] == 2:
-            courses_JSON =database_cursor.execute("SELECT courses FROM Group2Table").fetchone()[0]
+            courses_JSON = database_cursor.execute(
+                "SELECT courses FROM Group2Table"
+            ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
-        
+
         today_course = get_today_course(courses_dict)
 
-        studentCourses_JSON = database_cursor.execute("SELECT registeredCourses FROM allStudents WHERE AcademicID = ?", (student[0],)).fetchone()[0]
+        studentCourses_JSON = database_cursor.execute(
+            "SELECT registeredCourses FROM allStudents WHERE AcademicID = ?",
+            (student[0],),
+        ).fetchone()[0]
         studentCourses_dict = json.loads(studentCourses_JSON)
         greenlight = check_if_student_registered_course(studentCourses_dict.values())
-        attendance_JSON = database_cursor.execute("SELECT attendance FROM allStudents WHERE AcademicID = ?", (student[0],)).fetchone()[0]
+        attendance_JSON = database_cursor.execute(
+            "SELECT attendance FROM allStudents WHERE AcademicID = ?", (student[0],)
+        ).fetchone()[0]
         attendance_dict = json.loads(attendance_JSON)
         for course in studentCourses_dict.values():
-            if today_course == course and attendance_dict[course][today_info[1]] == False:
+            if (
+                today_course == course
+                and attendance_dict[course][today_info[1]] == False
+            ):
                 attendance_dict[course][today_info[1]] = False
                 database_cursor.execute(
-                "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                (json.dumps(attendance_dict), student[0]),
-            )
+                    "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
+                    (json.dumps(attendance_dict), student[0]),
+                )
             else:
                 continue
     database_connection.commit()
 
-
-
-    
     student_ID = input("Waiting for scan: ")
     if student_ID:
 
@@ -135,13 +148,15 @@ def take_attendance():
         ).fetchone()[0]
 
         if student_group == 1:
-            courses_JSON =database_cursor.execute("SELECT courses FROM Group1Table").fetchone()[0]
+            courses_JSON = database_cursor.execute(
+                "SELECT courses FROM Group1Table"
+            ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
         elif student_group == 2:
-            courses_JSON =database_cursor.execute("SELECT courses FROM Group2Table").fetchone()[0]
+            courses_JSON = database_cursor.execute(
+                "SELECT courses FROM Group2Table"
+            ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
-
-
 
         course_time_obj = get_course_time(courses_dict)
         time_difference = course_time_obj - current_time_obj
@@ -175,7 +190,31 @@ def take_attendance():
                     if today_course == course:
                         attendance_dict[today_course][today_info[1]] = True
                         database_cursor.execute(
-                "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                (json.dumps(attendance_dict), student_ID),
-            )
+                            "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
+                            (json.dumps(attendance_dict), student_ID),
+                        )
     database_connection.commit()
+
+
+def get_subject_percentage():
+    all_subjects_dict = {}
+    global counter
+    def get_all_subjects():
+        all_students = database_cursor.execute("SELECT AcademicID FROM allStudents").fetchall()
+        for id in all_students:
+            print(id)
+            StudentCourses_JSON = database_cursor.execute(
+                """
+                    SELECT registeredCourses
+                    FROM allStudents
+                    WHERE AcademicID = ?
+    """ , (id[0],)
+            ).fetchone()[0]
+            StudentCourses_dict = json.loads(StudentCourses_JSON)
+            all_subject_lst = list(all_subjects_dict.values())
+            for course in StudentCourses_dict.values() :
+                print(course)
+                if course not in all_subject_lst:
+                    all_subjects_dict[f"Course {counter}"] = course
+        print(all_subjects_dict)
+    get_all_subjects()

@@ -1,6 +1,4 @@
 from libs import *
 from DatabaseFunctions import *
 
-
-insert_date()
-take_attendance()
+get_subject_percentage()

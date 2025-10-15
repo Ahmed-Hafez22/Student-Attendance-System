@@ -55,9 +55,9 @@ g1_4_courses_dict = {
 
 # s1_109_dict = {"Course 1": "BS213", "Course 2": "CF225"}
 
-s2_118_dict = {"Course 1": "BS213", "Course 2": "CF225"}
+s2_118_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "BS216"}
 
-s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225"}
+s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "CF216"}
 
 
 # database_cursor.execute(
@@ -68,4 +68,6 @@ s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225"}
 #     "INSERT INTO allStudents(AcademicID, name, studentGroup, registeredCourses) VALUES(?,?,?,?)",
 #     (24030103, "Elbatrek", 1, json.dumps(s3_103_dict)),
 # )
+
+database_cursor.execute("UPDATE allStudents SET registeredCourses = ? WHERE AcademicID = ?" , (json.dumps(s2_118_dict), 24030118))
 database_connection.commit()
