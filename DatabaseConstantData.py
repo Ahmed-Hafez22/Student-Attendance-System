@@ -25,14 +25,14 @@ g1_4_courses_dict = {
     },
 }
 
-# database_cursor.execute(
-#     """
-#                         CREATE TABLE IF NOT EXISTS Group1Table(
-#                         id INTEGER PRIMARY KEY,
-#                         courses TEXT
-#                         )
-#                         """
-# )
+database_cursor.execute(
+    """
+                        CREATE TABLE IF NOT EXISTS Group1Table(
+                        id INTEGER PRIMARY KEY,
+                        courses TEXT
+                        )
+                        """
+)
 
 
 # database_cursor.execute(

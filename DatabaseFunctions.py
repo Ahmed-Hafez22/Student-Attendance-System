@@ -34,7 +34,6 @@ def make_attendance_dict():
                 "SELECT registeredCourses FROM allStudents WHERE id = ?", ((row + 1),)
             ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
-            print(courses_dict)
             attendance = {}
             for course in courses_dict.values():
                 attendance[course] = {}
@@ -47,6 +46,7 @@ def take_attendance():
     def get_today_course(courses):
         for course_code in courses:
             if today_info[0] == courses[course_code]["Day"]:
+                print(course_code)
                 return course_code
             else:
                 pass
@@ -55,6 +55,7 @@ def take_attendance():
         for course in courses:
             for g1_course in courses_dict:
                 if course == g1_course:
+                    print(True)
                     return True
                 else:
                     continue
@@ -72,11 +73,15 @@ def take_attendance():
                     year=date_obj.year, month=date_obj.month, day=date_obj.day
                 )
             )
-
+        print(course_time_obj)
         for time_obj in course_time_obj:
             gap = timedelta(minutes=15)
-            time_difference = current_time_obj - time_obj
+            print(f"Current Time: {current_time}")
+            print(f"Time OBJ: {time_obj}")
+            time_difference = time_obj - current_time_obj
+            print(f"Time Difference: {time_difference}")
             if time_difference <= gap:
+                print(f"Time difference: {time_difference} | Gap: {gap}")
                 return time_obj
             else:
                 continue
@@ -193,7 +198,7 @@ def take_attendance():
     database_connection.commit()
 
 
-def get_subject_percentage():
+def get_subject_percentage(day, month, year, desieredCourse):
     all_subjects_dict = {}
     counter = 0
     def get_all_subjects(counter):
@@ -217,20 +222,25 @@ def get_subject_percentage():
     def get_student_number_for_each_subject():
         coursesDict = get_all_subjects(counter)
         studentsDict = {}
+        percentageDict = {}
         all_students = database_cursor.execute("SELECT AcademicID FROM allStudents").fetchall()
-        today_info = database_cursor.execute(
-        """
-                                        SELECT Day, Date
-                                        FROM DateTable
-                                        WHERE id = (SELECT MAX(id) FROM DateTable)
-                                    """
-        ).fetchone()
+        
+        desiredDate_str = datetime(year, month, day).strftime("%Y-%m-%d")
 
-        date_obj = datetime.strptime(today_info[1], "%Y-%m-%d")
+        desiredDate_obj = datetime.strptime(desiredDate_str, "%Y-%m-%d")
 
         for course in coursesDict.values():
             studentsCount = 0
             presentStudent = 0
+            studentsDict[course] = {
+                    "All Students" : studentsCount,
+                    "Present Students" : presentStudent,
+                    "Absent Students" :0
+                }
+            percentageDict[course] = {
+                "Attendance Percentage" : 0,
+                "Absence Percentage" : 0
+            }
             for id in all_students:
                 studentCourses_JSON = database_cursor.execute(
                 """
@@ -241,11 +251,7 @@ def get_subject_percentage():
                 studentCourses_dict = json.loads(studentCourses_JSON)
                 if course in studentCourses_dict.values():
                     studentsCount += 1
-                studentsDict[course] = {
-                    "All Students" : studentsCount,
-                    "Present Students" : 0,
-                    "Absent Students" :0
-                }
+                studentsDict[course]["All Students"] = studentsCount
 
                 studentAttendance_JSON = database_cursor.execute(
                 """
@@ -255,10 +261,16 @@ def get_subject_percentage():
                 """, (id[0],)).fetchone()[0]
                 studentAttendance_dict = json.loads(studentAttendance_JSON)
 
-                if course in studentAttendance_dict and today_info[1] in studentAttendance_dict[course] and studentAttendance_dict[course][today_info[1]] == True:
+                if (course in studentAttendance_dict 
+                    and desiredDate_str in studentAttendance_dict[course] 
+                    and studentAttendance_dict[course][desiredDate_str] == True):
                     presentStudent += 1
                 studentsDict[course]["Present Students"] = presentStudent
                 studentsDict[course]["Absent Students"] = studentsDict[course]["All Students"] - studentsDict[course]["Present Students"]
-        
-        
+
+            attendacncePercent = (studentsDict[course]["Present Students"] / studentsDict[course]["All Students"]) * 100
+            absencePrecent = (studentsDict[course]["Absent Students"] / studentsDict[course]["All students"]) * 100
+            percentageDict[course]["Attendance Percentage"] = attendacncePercent
+            percentageDict[course]["Absence Percentage"] = absencePrecent
+    #print(percentageDict[course])
     get_student_number_for_each_subject()
