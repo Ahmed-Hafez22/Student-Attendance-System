@@ -34,11 +34,12 @@ def make_attendance_dict():
                 "SELECT registeredCourses FROM allStudents WHERE id = ?", ((row + 1),)
             ).fetchone()[0]
             courses_dict = json.loads(courses_JSON)
-            attendance_dict = {}
+            print(courses_dict)
+            attendance = {}
             for course in courses_dict.values():
-                attendance_dict[course] = {}
-                update_query = "UPDATE allStudents SET attendance = ?"
-                database_cursor.execute(update_query, (json.dumps(attendance_dict),))
+                attendance[course] = {}
+                update_query = "UPDATE allStudents SET attendance = ? WHERE id = ?"
+                database_cursor.execute(update_query, (json.dumps(attendance) , (row+1)))
     database_connection.commit()
 
 
@@ -116,20 +117,16 @@ def take_attendance():
             (student[0],),
         ).fetchone()[0]
         studentCourses_dict = json.loads(studentCourses_JSON)
-        greenlight = check_if_student_registered_course(studentCourses_dict.values())
         attendance_JSON = database_cursor.execute(
             "SELECT attendance FROM allStudents WHERE AcademicID = ?", (student[0],)
         ).fetchone()[0]
-        attendance_dict = json.loads(attendance_JSON)
+        attendanceDict = json.loads(attendance_JSON)
         for course in studentCourses_dict.values():
-            if (
-                today_course == course
-                and attendance_dict[course][today_info[1]] == False
-            ):
-                attendance_dict[course][today_info[1]] = False
+            if today_info[1] not in attendanceDict[today_course]:
+                attendanceDict[course][today_info[1]] = False
                 database_cursor.execute(
                     "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                    (json.dumps(attendance_dict), student[0]),
+                    (json.dumps(attendanceDict), student[0]),
                 )
             else:
                 continue
@@ -185,24 +182,23 @@ def take_attendance():
                 attendance_JSON = database_cursor.execute(
                     attendance_JSON_query, (student_ID,)
                 ).fetchone()[0]
-                attendance_dict = json.loads(attendance_JSON)
+                studentsDict = json.loads(attendance_JSON)
                 for course in studentCourses_dict.values():
                     if today_course == course:
-                        attendance_dict[today_course][today_info[1]] = True
+                        studentsDict[today_course][today_info[1]] = True
                         database_cursor.execute(
                             "UPDATE allStudents SET attendance = ? WHERE AcademicID = ?",
-                            (json.dumps(attendance_dict), student_ID),
+                            (json.dumps(studentsDict), student_ID),
                         )
     database_connection.commit()
 
 
 def get_subject_percentage():
     all_subjects_dict = {}
-    global counter
-    def get_all_subjects():
+    counter = 0
+    def get_all_subjects(counter):
         all_students = database_cursor.execute("SELECT AcademicID FROM allStudents").fetchall()
         for id in all_students:
-            print(id)
             StudentCourses_JSON = database_cursor.execute(
                 """
                     SELECT registeredCourses
@@ -213,8 +209,56 @@ def get_subject_percentage():
             StudentCourses_dict = json.loads(StudentCourses_JSON)
             all_subject_lst = list(all_subjects_dict.values())
             for course in StudentCourses_dict.values() :
-                print(course)
                 if course not in all_subject_lst:
+                    counter += 1 
                     all_subjects_dict[f"Course {counter}"] = course
-        print(all_subjects_dict)
-    get_all_subjects()
+        return all_subjects_dict
+    
+    def get_student_number_for_each_subject():
+        coursesDict = get_all_subjects(counter)
+        studentsDict = {}
+        all_students = database_cursor.execute("SELECT AcademicID FROM allStudents").fetchall()
+        today_info = database_cursor.execute(
+        """
+                                        SELECT Day, Date
+                                        FROM DateTable
+                                        WHERE id = (SELECT MAX(id) FROM DateTable)
+                                    """
+        ).fetchone()
+
+        date_obj = datetime.strptime(today_info[1], "%Y-%m-%d")
+
+        for course in coursesDict.values():
+            studentsCount = 0
+            presentStudent = 0
+            for id in all_students:
+                studentCourses_JSON = database_cursor.execute(
+                """
+                    SELECT registeredCourses
+                    FROM allStudents
+                    WHERE AcademicID = ?
+                """ , (id[0],)).fetchone()[0]
+                studentCourses_dict = json.loads(studentCourses_JSON)
+                if course in studentCourses_dict.values():
+                    studentsCount += 1
+                studentsDict[course] = {
+                    "All Students" : studentsCount,
+                    "Present Students" : 0,
+                    "Absent Students" :0
+                }
+
+                studentAttendance_JSON = database_cursor.execute(
+                """
+                    SELECT attendance
+                    FROM allStudents
+                    WHERE AcademicID = ?
+                """, (id[0],)).fetchone()[0]
+                studentAttendance_dict = json.loads(studentAttendance_JSON)
+
+                if course in studentAttendance_dict and today_info[1] in studentAttendance_dict[course] and studentAttendance_dict[course][today_info[1]] == True:
+                    presentStudent += 1
+                studentsDict[course]["Present Students"] = presentStudent
+                studentsDict[course]["Absent Students"] = studentsDict[course]["All Students"] - studentsDict[course]["Present Students"]
+        
+        
+    get_student_number_for_each_subject()

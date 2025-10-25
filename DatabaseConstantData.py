@@ -2,15 +2,15 @@ from libs import *
 
 database_connection = connect("test.db")
 database_cursor = database_connection.cursor()
-# database_cursor.execute(
-#     """
-#                         CREATE TABLE IF NOT EXISTS DateTable(
-#                             id INTEGER PRIMARY KEY,
-#                             Date TEXT,
-#                             Day TEXT
-#                         )
-#                         """
-# )
+database_cursor.execute(
+    """
+                        CREATE TABLE IF NOT EXISTS DateTable(
+                            id INTEGER PRIMARY KEY,
+                            Date TEXT,
+                            Day TEXT
+                        )
+                        """
+)
 
 g1_4_courses_dict = {
     "BS213": {
@@ -27,7 +27,7 @@ g1_4_courses_dict = {
 
 # database_cursor.execute(
 #     """
-#                         CREATE TABLE IF NOT EXISTS Group2Table(
+#                         CREATE TABLE IF NOT EXISTS Group1Table(
 #                         id INTEGER PRIMARY KEY,
 #                         courses TEXT
 #                         )
@@ -36,7 +36,7 @@ g1_4_courses_dict = {
 
 
 # database_cursor.execute(
-#     "INSERT INTO Group2Table(courses) VALUES(?)",
+#     "INSERT INTO Group1Table(courses) VALUES(?)",
 #     (json.dumps(g1_4_courses_dict),),
 # )
 
@@ -55,9 +55,9 @@ g1_4_courses_dict = {
 
 # s1_109_dict = {"Course 1": "BS213", "Course 2": "CF225"}
 
-s2_118_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "BS216"}
+# s2_118_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "BS216"}
 
-s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "CF216"}
+# s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "CF216"}
 
 
 # database_cursor.execute(
@@ -66,8 +66,13 @@ s3_103_dict = {"Course 1": "BS213", "Course 2": "CF225", "Course 3" : "CF216"}
 # )
 # database_cursor.execute(
 #     "INSERT INTO allStudents(AcademicID, name, studentGroup, registeredCourses) VALUES(?,?,?,?)",
+#     (24030118, "Ibrahim", 1, json.dumps(s2_118_dict)),
+# )
+
+# database_cursor.execute(
+#     "INSERT INTO allStudents(AcademicID, name, studentGroup, registeredCourses) VALUES(?,?,?,?)",
 #     (24030103, "Elbatrek", 1, json.dumps(s3_103_dict)),
 # )
 
-database_cursor.execute("UPDATE allStudents SET registeredCourses = ? WHERE AcademicID = ?" , (json.dumps(s2_118_dict), 24030118))
+# database_cursor.execute("UPDATE allStudents SET registeredCourses = ? WHERE AcademicID = ?" , (json.dumps(s2_118_dict), 24030118))
 database_connection.commit()
